@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=240, height=320">
+<title>Desky · Clock</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+  }
+  .screen {
+    width: 240px; height: 320px;
+    background: var(--bg);
+    color: var(--fg);
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+    padding: 22px;
+  }
+  .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .top .zone {
+    font-size: var(--size-label); font-weight: var(--w-medium);
+    letter-spacing: var(--track-label); color: var(--fg-muted);
+  }
+  .top .secs {
+    font-size: 15px; font-weight: var(--w-medium);
+    color: var(--accent-warm); font-variant-numeric: tabular-nums;
+  }
+  .top .secs .u { color: var(--fg-dim); margin-left: 1px; }
+
+  .hero { flex: 1; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 18px; }
+  .time {
+    font-size: 74px; font-weight: var(--w-bold); line-height: 0.9;
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+    color: var(--fg);
+  }
+  .time .colon { color: var(--accent-warm); }
+  .date {
+    display: flex; gap: 10px; align-items: baseline; white-space: nowrap;
+    font-size: 12px; font-weight: var(--w-medium);
+    letter-spacing: 0.13em;
+  }
+  .date .day { color: var(--fg); }
+  .date .dot { color: var(--fg-dim); }
+  .date .dmy { color: var(--accent-warm); }
+
+  .secbar { height: 3px; width: 100%; background: var(--line); position: relative; }
+  .secbar .fill { position: absolute; left: 0; top: 0; bottom: 0;
+                  background: var(--accent-warm); width: 0%; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="top">
+      <span class="zone">BENGALURU</span>
+      <span class="secs" id="secs">00<span class="u">″</span></span>
+    </div>
+    <div class="hero">
+      <div class="time" id="time">--<span class="colon">:</span>--</div>
+      <div class="date">
+        <span class="day" id="day">------</span>
+        <span class="dot">·</span>
+        <span class="dmy" id="dmy">-- ---</span>
+      </div>
+    </div>
+    <div class="secbar"><div class="fill" id="fill"></div></div>
+  </div>
+
+<script>
+  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const MON  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function istNow() {
+    const n = new Date();
+    return new Date(n.getTime() + (n.getTimezoneOffset() + 330) * 60000);
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function tick() {
+    const d = istNow();
+    const hh = pad(d.getHours()), mm = pad(d.getMinutes()), ss = d.getSeconds();
+    document.getElementById('time').innerHTML = hh + '<span class="colon">:</span>' + mm;
+    document.getElementById('secs').innerHTML = pad(ss) + '<span class="u">″</span>';
+    document.getElementById('day').textContent = DAYS[d.getDay()];
+    document.getElementById('dmy').textContent = pad(d.getDate()) + ' ' + MON[d.getMonth()];
+    document.getElementById('fill').style.width = (ss / 60 * 100) + '%';
+  }
+  tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>

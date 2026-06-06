@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+
+:root {
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Space Grotesk', system-ui, sans-serif;
+
+  --w-regular: 400;
+  --w-medium:  500;
+  --w-bold:    700;
+
+  --size-hero:   76px;
+  --size-body:   13px;
+  --size-label:  11px;
+
+  --track-label: 0.18em;
+}

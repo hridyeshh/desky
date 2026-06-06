@@ -124,15 +124,21 @@ type lastfmResponse struct {
 	} `json:"recenttracks"`
 }
 
+type lastfmImage struct {
+	Text string `json:"#text"`
+	Size string `json:"size"`
+}
+
 type lastfmTrack struct {
-	Name   string `json:"name"`
+	Name   string        `json:"name"`
 	Artist struct {
 		Text string `json:"#text"`
 	} `json:"artist"`
 	Album struct {
 		Text string `json:"#text"`
 	} `json:"album"`
-	Attr struct {
+	Image []lastfmImage `json:"image"`
+	Attr  struct {
 		NowPlaying string `json:"nowplaying"`
 	} `json:"@attr"`
 }
@@ -190,10 +196,23 @@ func (h *Handlers) Spotify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pick the best available album art URL (prefer extralarge, then large).
+	imageURL := ""
+	for _, img := range t.Image {
+		if img.Size == "extralarge" {
+			imageURL = img.Text
+			break
+		}
+		if img.Size == "large" && imageURL == "" {
+			imageURL = img.Text
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{
-		"status": "playing",
-		"track":  t.Name,
-		"artist": t.Artist.Text,
-		"album":  t.Album.Text,
+		"status":    "playing",
+		"track":     t.Name,
+		"artist":    t.Artist.Text,
+		"album":     t.Album.Text,
+		"image_url": imageURL,
 	})
 }

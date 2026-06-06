@@ -61,12 +61,12 @@ func (d *DB) Migrate() error {
 	if count == 0 {
 		_, err := d.conn.Exec(
 			`INSERT INTO config (id, screen1, screen2, screen3) VALUES (1, $1, $2, $3)`,
-			"clock", "gif", "spotify",
+			"clock", "gif", "music",
 		)
 		if err != nil {
 			return fmt.Errorf("seed default config: %w", err)
 		}
-		log.Println("seeded default config: clock / gif / spotify")
+		log.Println("seeded default config: clock / gif / music")
 	}
 	return nil
 }

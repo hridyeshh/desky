@@ -9,7 +9,7 @@ import (
 // validWidgets is the set of widget names allowed in any screen slot.
 var validWidgets = map[string]bool{
 	"clock":   true,
-	"spotify": true,
+	"music":   true,
 	"weather": true,
 	"tasks":   true,
 	"gif":     true,

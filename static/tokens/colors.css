@@ -1,0 +1,24 @@
+/* Desky — color tokens
+   Dark-only palette tuned for a 2.4" ILI9341 TFT (240×320) in a dark desk.
+   Every value is a flat solid — no gradients, so it renders 1:1 in Pillow. */
+
+:root {
+  /* Surfaces — the screen never goes brighter than near-black */
+  --bg:        #0A0A0A;
+  --bg-2:      #111111;
+  --bg-3:      #1A1A1A;
+
+  /* Text */
+  --fg:        #F2F2F2;
+  --fg-muted:  #6B6B6B;
+  --fg-dim:    #3A3A3A;
+
+  /* Hairlines */
+  --line:      #222222;
+
+  /* Accents */
+  --accent-warm:  #E8C97A;
+  --accent-cool:  #7AC8E8;
+  --accent-music: #FC3C44;
+  --accent-done:  #5BD17A;
+}
