@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -116,11 +117,83 @@ func (h *Handlers) Weather(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Spotify is a placeholder until Spotify/Last.fm is wired up in Phase 4.
+// lastfmResponse is the subset of user.getrecenttracks we care about.
+type lastfmResponse struct {
+	RecentTracks struct {
+		Track []lastfmTrack `json:"track"`
+	} `json:"recenttracks"`
+}
+
+type lastfmTrack struct {
+	Name   string `json:"name"`
+	Artist struct {
+		Text string `json:"#text"`
+	} `json:"artist"`
+	Album struct {
+		Text string `json:"#text"`
+	} `json:"album"`
+	Attr struct {
+		NowPlaying string `json:"nowplaying"`
+	} `json:"@attr"`
+}
+
+// Spotify serves Now Playing data from Last.fm (which scrobbles Apple Music).
+// The route name is historical; the source is Last.fm user.getrecenttracks.
+//
+// Responses:
+//   {"status":"not_configured"}          — env vars missing
+//   {"status":"idle"}                    — nothing playing / upstream issue
+//   {"status":"playing","track":..,"artist":..,"album":..}
 func (h *Handlers) Spotify(w http.ResponseWriter, r *http.Request) {
+	apiKey := os.Getenv("LASTFM_API_KEY")
+	username := os.Getenv("LASTFM_USERNAME")
+	if apiKey == "" || username == "" {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "not_configured"})
+		return
+	}
+
+	q := url.Values{}
+	q.Set("method", "user.getrecenttracks")
+	q.Set("user", username)
+	q.Set("api_key", apiKey)
+	q.Set("format", "json")
+	q.Set("limit", "1")
+	endpoint := "http://ws.audioscrobbler.com/2.0/?" + q.Encode()
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(endpoint)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "idle"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "idle"})
+		return
+	}
+
+	var data lastfmResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "idle"})
+		return
+	}
+
+	if len(data.RecentTracks.Track) == 0 {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "idle"})
+		return
+	}
+
+	t := data.RecentTracks.Track[0]
+	if t.Attr.NowPlaying != "true" {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "idle"})
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{
-		"status": "not_configured",
-		"track":  "",
-		"artist": "",
+		"status": "playing",
+		"track":  t.Name,
+		"artist": t.Artist.Text,
+		"album":  t.Album.Text,
 	})
 }
