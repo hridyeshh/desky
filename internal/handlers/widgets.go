@@ -37,8 +37,9 @@ func (h *Handlers) Clock(w http.ResponseWriter, r *http.Request) {
 // owmResponse is the subset of the OpenWeatherMap current-weather response we use.
 type owmResponse struct {
 	Main struct {
-		Temp     float64 `json:"temp"`
-		Humidity int     `json:"humidity"`
+		Temp      float64 `json:"temp"`
+		FeelsLike float64 `json:"feels_like"`
+		Humidity  int     `json:"humidity"`
 	} `json:"main"`
 	Weather []struct {
 		Main string `json:"main"`
@@ -107,10 +108,11 @@ func (h *Handlers) Weather(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
-		"temp":      fmt.Sprintf("%.0f°C", data.Main.Temp),
-		"condition": condition,
-		"humidity":  fmt.Sprintf("%d%%", data.Main.Humidity),
-		"icon":      icon,
+		"temp":       fmt.Sprintf("%.0f°C", data.Main.Temp),
+		"condition":  condition,
+		"humidity":   fmt.Sprintf("%d%%", data.Main.Humidity),
+		"feels_like": fmt.Sprintf("%.0f°", data.Main.FeelsLike),
+		"icon":       icon,
 	})
 }
 
