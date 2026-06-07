@@ -8,11 +8,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Config holds the three screen widget slots for the single desk display.
+// Config holds the three screen widget slots for the single desk display,
+// the global power state, and optional per-screen GIF URLs.
 type Config struct {
-	Screen1 string `json:"screen1"`
-	Screen2 string `json:"screen2"`
-	Screen3 string `json:"screen3"`
+	Screen1    string `json:"screen1"`
+	Screen2    string `json:"screen2"`
+	Screen3    string `json:"screen3"`
+	PowerState string `json:"power_state"`
+	GifURL1    string `json:"gif_url_1"`
+	GifURL2    string `json:"gif_url_2"`
+	GifURL3    string `json:"gif_url_3"`
 }
 
 // DB wraps the sql.DB connection.
@@ -53,6 +58,18 @@ func (d *DB) Migrate() error {
 		return fmt.Errorf("create config table: %w", err)
 	}
 
+	// Additive migrations for power state and per-screen GIF URLs.
+	for _, stmt := range []string{
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS power_state TEXT NOT NULL DEFAULT 'ON'`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_1 TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_2 TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_3 TEXT NOT NULL DEFAULT ''`,
+	} {
+		if _, err := d.conn.Exec(stmt); err != nil {
+			return fmt.Errorf("migrate config columns: %w", err)
+		}
+	}
+
 	// Seed default config only if the table is empty.
 	var count int
 	if err := d.conn.QueryRow(`SELECT COUNT(*) FROM config`).Scan(&count); err != nil {
@@ -75,8 +92,9 @@ func (d *DB) Migrate() error {
 func (d *DB) GetConfig() (Config, error) {
 	var c Config
 	err := d.conn.QueryRow(
-		`SELECT screen1, screen2, screen3 FROM config WHERE id = 1`,
-	).Scan(&c.Screen1, &c.Screen2, &c.Screen3)
+		`SELECT screen1, screen2, screen3, power_state, gif_url_1, gif_url_2, gif_url_3
+		 FROM config WHERE id = 1`,
+	).Scan(&c.Screen1, &c.Screen2, &c.Screen3, &c.PowerState, &c.GifURL1, &c.GifURL2, &c.GifURL3)
 	if err != nil {
 		return c, fmt.Errorf("get config: %w", err)
 	}
@@ -85,16 +103,30 @@ func (d *DB) GetConfig() (Config, error) {
 
 // UpdateConfig applies partial updates. Any non-nil field is written; nil
 // fields are left unchanged. Returns the updated full config.
-func (d *DB) UpdateConfig(screen1, screen2, screen3 *string) (Config, error) {
+func (d *DB) UpdateConfig(screen1, screen2, screen3, gifURL1, gifURL2, gifURL3 *string) (Config, error) {
 	_, err := d.conn.Exec(`
 		UPDATE config SET
-			screen1 = COALESCE($1, screen1),
-			screen2 = COALESCE($2, screen2),
-			screen3 = COALESCE($3, screen3)
+			screen1   = COALESCE($1, screen1),
+			screen2   = COALESCE($2, screen2),
+			screen3   = COALESCE($3, screen3),
+			gif_url_1 = COALESCE($4, gif_url_1),
+			gif_url_2 = COALESCE($5, gif_url_2),
+			gif_url_3 = COALESCE($6, gif_url_3)
 		WHERE id = 1
-	`, screen1, screen2, screen3)
+	`, screen1, screen2, screen3, gifURL1, gifURL2, gifURL3)
 	if err != nil {
 		return Config{}, fmt.Errorf("update config: %w", err)
+	}
+	return d.GetConfig()
+}
+
+// SetPowerState writes the global power state ("ON" or "OFF").
+func (d *DB) SetPowerState(state string) (Config, error) {
+	_, err := d.conn.Exec(
+		`UPDATE config SET power_state = $1 WHERE id = 1`, state,
+	)
+	if err != nil {
+		return Config{}, fmt.Errorf("set power state: %w", err)
 	}
 	return d.GetConfig()
 }

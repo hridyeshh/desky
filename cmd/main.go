@@ -40,6 +40,16 @@ func main() {
 	mux.HandleFunc("GET /widget/weather", h.Weather)
 	mux.HandleFunc("GET /widget/spotify", h.Spotify)
 
+	// Power standby
+	mux.HandleFunc("POST /api/power", h.SetPower)
+
+	// Heartbeat / connectivity
+	mux.HandleFunc("POST /api/heartbeat", h.Heartbeat)
+	mux.HandleFunc("GET /api/status", h.Status)
+
+	// GIF upload (Cloudinary)
+	mux.HandleFunc("POST /api/upload-gif", h.UploadGIF)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

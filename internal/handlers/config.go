@@ -21,6 +21,9 @@ type configPatch struct {
 	Screen1 *string `json:"screen1"`
 	Screen2 *string `json:"screen2"`
 	Screen3 *string `json:"screen3"`
+	GifURL1 *string `json:"gif_url_1"`
+	GifURL2 *string `json:"gif_url_2"`
+	GifURL3 *string `json:"gif_url_3"`
 }
 
 // validWidget returns an error if w is not a known widget name.
@@ -53,7 +56,8 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if patch.Screen1 == nil && patch.Screen2 == nil && patch.Screen3 == nil {
+	if patch.Screen1 == nil && patch.Screen2 == nil && patch.Screen3 == nil &&
+		patch.GifURL1 == nil && patch.GifURL2 == nil && patch.GifURL3 == nil {
 		writeError(w, http.StatusBadRequest, "no screen fields provided")
 		return
 	}
@@ -72,7 +76,10 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cfg, err := h.DB.UpdateConfig(patch.Screen1, patch.Screen2, patch.Screen3)
+	cfg, err := h.DB.UpdateConfig(
+		patch.Screen1, patch.Screen2, patch.Screen3,
+		patch.GifURL1, patch.GifURL2, patch.GifURL3,
+	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not update config")
 		return
