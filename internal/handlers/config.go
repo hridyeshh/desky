@@ -84,5 +84,11 @@ func (h *Handlers) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not update config")
 		return
 	}
+
+	// Broadcast the new config to all SSE subscribers (non-blocking).
+	if b, err := json.Marshal(cfg); err == nil {
+		h.Hub.broadcast(string(b))
+	}
+
 	writeJSON(w, http.StatusOK, cfg)
 }

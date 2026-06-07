@@ -17,6 +17,14 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+// Flush passes through to the underlying ResponseWriter so SSE streaming works
+// through the logging middleware.
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // CORS allows all origins (Pi and iPhone both need access) and handles
 // preflight OPTIONS requests.
 func CORS(next http.Handler) http.Handler {

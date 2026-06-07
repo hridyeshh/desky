@@ -9,12 +9,13 @@ import (
 
 // Handlers holds dependencies shared by all HTTP handlers.
 type Handlers struct {
-	DB *db.DB
+	DB  *db.DB
+	Hub *Hub
 }
 
 // New returns a Handlers wired to the given database.
 func New(database *db.DB) *Handlers {
-	return &Handlers{DB: database}
+	return &Handlers{DB: database, Hub: NewHub()}
 }
 
 // writeJSON marshals v to JSON and writes it with the given status code.

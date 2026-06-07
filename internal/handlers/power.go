@@ -31,5 +31,11 @@ func (h *Handlers) SetPower(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not set power state")
 		return
 	}
+
+	// Broadcast so the Pi enters/leaves standby instantly.
+	if b, err := json.Marshal(cfg); err == nil {
+		h.Hub.broadcast(string(b))
+	}
+
 	writeJSON(w, http.StatusOK, cfg)
 }

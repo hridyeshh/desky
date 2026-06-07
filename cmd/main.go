@@ -36,6 +36,7 @@ func main() {
 	mux.HandleFunc("GET /health", h.Health)
 	mux.HandleFunc("GET /config", h.GetConfig)
 	mux.HandleFunc("PUT /config", h.UpdateConfig)
+	mux.HandleFunc("GET /events", h.Events)
 	mux.HandleFunc("GET /widget/clock", h.Clock)
 	mux.HandleFunc("GET /widget/weather", h.Weather)
 	mux.HandleFunc("GET /widget/spotify", h.Spotify)
