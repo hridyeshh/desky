@@ -18,6 +18,15 @@ type Config struct {
 	GifURL1    string `json:"gif_url_1"`
 	GifURL2    string `json:"gif_url_2"`
 	GifURL3    string `json:"gif_url_3"`
+	// Per-screen countdown timers. TimerEndN is the absolute Unix time (seconds)
+	// at which the timer hits zero; 0 means no active timer. PrevN is the widget
+	// to revert to after the "TIME'S UP" flash ends.
+	TimerEnd1 int64  `json:"timer_end_1"`
+	TimerEnd2 int64  `json:"timer_end_2"`
+	TimerEnd3 int64  `json:"timer_end_3"`
+	Prev1     string `json:"prev_1"`
+	Prev2     string `json:"prev_2"`
+	Prev3     string `json:"prev_3"`
 }
 
 // DB wraps the sql.DB connection.
@@ -64,6 +73,12 @@ func (d *DB) Migrate() error {
 		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_1 TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_2 TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE config ADD COLUMN IF NOT EXISTS gif_url_3 TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS timer_end_1 BIGINT NOT NULL DEFAULT 0`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS timer_end_2 BIGINT NOT NULL DEFAULT 0`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS timer_end_3 BIGINT NOT NULL DEFAULT 0`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS prev_1 TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS prev_2 TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE config ADD COLUMN IF NOT EXISTS prev_3 TEXT NOT NULL DEFAULT ''`,
 	} {
 		if _, err := d.conn.Exec(stmt); err != nil {
 			return fmt.Errorf("migrate config columns: %w", err)
@@ -92,9 +107,11 @@ func (d *DB) Migrate() error {
 func (d *DB) GetConfig() (Config, error) {
 	var c Config
 	err := d.conn.QueryRow(
-		`SELECT screen1, screen2, screen3, power_state, gif_url_1, gif_url_2, gif_url_3
+		`SELECT screen1, screen2, screen3, power_state, gif_url_1, gif_url_2, gif_url_3,
+		        timer_end_1, timer_end_2, timer_end_3, prev_1, prev_2, prev_3
 		 FROM config WHERE id = 1`,
-	).Scan(&c.Screen1, &c.Screen2, &c.Screen3, &c.PowerState, &c.GifURL1, &c.GifURL2, &c.GifURL3)
+	).Scan(&c.Screen1, &c.Screen2, &c.Screen3, &c.PowerState, &c.GifURL1, &c.GifURL2, &c.GifURL3,
+		&c.TimerEnd1, &c.TimerEnd2, &c.TimerEnd3, &c.Prev1, &c.Prev2, &c.Prev3)
 	if err != nil {
 		return c, fmt.Errorf("get config: %w", err)
 	}
@@ -127,6 +144,39 @@ func (d *DB) SetPowerState(state string) (Config, error) {
 	)
 	if err != nil {
 		return Config{}, fmt.Errorf("set power state: %w", err)
+	}
+	return d.GetConfig()
+}
+
+// SetTimer starts a countdown on the given screen (1–3): sets the slot to
+// "timer", records the absolute end time, and snapshots the widget to revert
+// to when the timer finishes. If the screen already shows a timer, the stored
+// prev is preserved so repeated timers don't lose the original widget.
+func (d *DB) SetTimer(screen int, endUnix int64, prev string) (Config, error) {
+	var screenCol, endCol, prevCol string
+	switch screen {
+	case 1:
+		screenCol, endCol, prevCol = "screen1", "timer_end_1", "prev_1"
+	case 2:
+		screenCol, endCol, prevCol = "screen2", "timer_end_2", "prev_2"
+	case 3:
+		screenCol, endCol, prevCol = "screen3", "timer_end_3", "prev_3"
+	default:
+		return Config{}, fmt.Errorf("invalid screen %d", screen)
+	}
+
+	// Only overwrite prev when the slot is not already a timer, so re-arming a
+	// timer keeps the original underlying widget.
+	query := fmt.Sprintf(`
+		UPDATE config SET
+			%[3]s = CASE WHEN %[1]s = 'timer' THEN %[3]s ELSE $1 END,
+			%[1]s = 'timer',
+			%[2]s = $2
+		WHERE id = 1
+	`, screenCol, endCol, prevCol)
+
+	if _, err := d.conn.Exec(query, prev, endUnix); err != nil {
+		return Config{}, fmt.Errorf("set timer: %w", err)
 	}
 	return d.GetConfig()
 }

@@ -11,7 +11,7 @@ var validWidgets = map[string]bool{
 	"clock":   true,
 	"music":   true,
 	"weather": true,
-	"tasks":   true,
+	"timer":   true,
 	"gif":     true,
 }
 

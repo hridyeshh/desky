@@ -44,6 +44,9 @@ func main() {
 	// Power standby
 	mux.HandleFunc("POST /api/power", h.SetPower)
 
+	// Countdown timer
+	mux.HandleFunc("POST /api/timer", h.SetTimer)
+
 	// Heartbeat / connectivity
 	mux.HandleFunc("POST /api/heartbeat", h.Heartbeat)
 	mux.HandleFunc("GET /api/status", h.Status)
